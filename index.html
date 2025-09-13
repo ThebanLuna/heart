@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>chúc mừng sinh nhật Thuận</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000000;
+      font-family: Arial, sans-serif;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: block;
+      width: 100vw !important;
+      height: 100vh !important;
+      cursor: pointer;
+    }
+    
+    .instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      font-size: 14px;
+      z-index: 1000;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 25px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: fadeIn 2s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Mobile specific styles */
+    @media screen and (max-width: 768px) {
+      .instructions {
+        bottom: 30px;
+        font-size: 12px;
+        padding: 8px 16px;
+        max-width: 80%;
+        line-height: 1.4;
+      }
+    }
+    
+    @media screen and (max-width: 480px) {
+      .instructions {
+        bottom: 20px;
+        font-size: 11px;
+        padding: 6px 12px;
+        max-width: 90%;
+      }
+    }
+    
+    /* Prevent zoom on double tap */
+    canvas {
+      touch-action: manipulation;
+    }
+    
+    /* Hide scrollbars */
+    body::-webkit-scrollbar {
+      display: none;
+    }
+    
+    body {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    /* Performance optimizations */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="instructions">
+    Xoay ngang điện thoại đi.
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      75, window.innerWidth / window.innerHeight, 0.1, 5000
+    );
+    
+    // Responsive camera positioning
+    function updateCameraPosition() {
+      const isMobile = window.innerWidth < 768;
+      camera.position.z = isMobile ? 600 : 500;
+    }
+    updateCameraPosition();
+
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance"
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+    document.body.appendChild(renderer.domElement);
+
+    // Heart shape
+    function heartShape(t) {
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      const scale = window.innerWidth < 768 ? 12 : 15; // Smaller on mobile
+      return new THREE.Vector3(x * scale, y * scale, 0);
+    }
+
+    // Convert text to points with responsive sizing
+    function textToPoints(text) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const isMobile = window.innerWidth < 768;
+      
+      canvas.width = isMobile ? 600 : 800;
+      canvas.height = isMobile ? 150 : 200;
+      
+      ctx.fillStyle = "white";
+      ctx.font = `bold ${isMobile ? 100 : 150}px Arial`;
+      ctx.textAlign = "center";
+      ctx.fillText(text, canvas.width / 2, isMobile ? 100 : 150);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const points = [];
+      const step = isMobile ? 6 : 4; // Fewer points on mobile for performance
+
+      for (let y = 0; y < canvas.height; y += step) {
+        for (let x = 0; x < canvas.width; x += step) {
+          const index = (y * canvas.width + x) * 4;
+          if (imageData[index + 3] > 128) {
+            points.push(new THREE.Vector3(x - canvas.width / 2, canvas.height / 2 - y, 0));
+          }
+        }
+      }
+      return points;
+    }
+
+    // Responsive particle count
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 2000 : 4000;
+    
+    const particles = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const targetHeart = new Float32Array(particleCount * 3);
+    const targetText = new Float32Array(particleCount * 3);
+    const targetExplode = new Float32Array(particleCount * 3);
+
+    // Init particles
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = 0;
+      positions[i * 3 + 1] = 0;
+      positions[i * 3 + 2] = 0;
+
+      // Heart
+      const t = Math.random() * Math.PI * 2;
+      const pos = heartShape(t);
+      const heartSpread = isMobile ? 15 : 20;
+      targetHeart[i * 3] = pos.x + (Math.random() - 0.5) * heartSpread;
+      targetHeart[i * 3 + 1] = pos.y + (Math.random() - 0.5) * heartSpread;
+      targetHeart[i * 3 + 2] = (Math.random() - 0.5) * heartSpread;
+
+      // Explode
+      const explodeRange = isMobile ? 1500 : 2000;
+      targetExplode[i * 3] = (Math.random() - 0.5) * explodeRange;
+      targetExplode[i * 3 + 1] = (Math.random() - 0.5) * explodeRange;
+      targetExplode[i * 3 + 2] = (Math.random() - 0.5) * explodeRange;
+    }
+
+    // Generate text target
+    const textPoints = textToPoints("hpbd thuận");
+    for (let i = 0; i < particleCount; i++) {
+      const p = textPoints[i % textPoints.length];
+      targetText[i * 3] = p.x;
+      targetText[i * 3 + 1] = p.y;
+      targetText[i * 3 + 2] = p.z;
+    }
+
+    particles.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0xff3366,
+      size: isMobile ? 3 : 2,
+      sizeAttenuation: false
+    });
+
+    const pointCloud = new THREE.Points(particles, material);
+    scene.add(pointCloud);
+
+    let phase = 0; // 0 = explode, 1 = heart, 2 = text
+    const phases = [targetExplode, targetHeart, targetText];
+
+    // Animation with performance optimization
+    let lastTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+
+    function animate(currentTime) {
+      requestAnimationFrame(animate);
+      
+      if (currentTime - lastTime < frameInterval) {
+        return;
+      }
+      lastTime = currentTime;
+
+      const pos = particles.attributes.position.array;
+      const target = phases[phase];
+      const lerp = isMobile ? 0.03 : 0.05; // Slower animation on mobile for smoother performance
+
+      for (let i = 0; i < particleCount; i++) {
+        pos[i * 3] += (target[i * 3] - pos[i * 3]) * lerp;
+        pos[i * 3 + 1] += (target[i * 3 + 1] - pos[i * 3 + 1]) * lerp;
+        pos[i * 3 + 2] += (target[i * 3 + 2] - pos[i * 3 + 2]) * lerp;
+      }
+
+      particles.attributes.position.needsUpdate = true;
+      renderer.render(scene, camera);
+    }
+
+    animate(0);
+
+    // Touch and click events
+    let touchStartTime = 0;
+    
+    function handleInteraction() {
+      phase = (phase + 1) % phases.length;
+    }
+
+    // Touch events for mobile
+    renderer.domElement.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      touchStartTime = Date.now();
+    });
+
+    renderer.domElement.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      const touchDuration = Date.now() - touchStartTime;
+      if (touchDuration < 500) { // Tap, not swipe
+        handleInteraction();
+      }
+    });
+
+    // Click event for desktop
+    renderer.domElement.addEventListener("click", handleInteraction);
+
+    // Responsive resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      updateCameraPosition();
+      
+      // Regenerate text points with new scaling
+      const newTextPoints = textToPoints("hpbd thuận");
+      for (let i = 0; i < particleCount; i++) {
+        const p = newTextPoints[i % newTextPoints.length];
+        targetText[i * 3] = p.x;
+        targetText[i * 3 + 1] = p.y;
+        targetText[i * 3 + 2] = p.z;
+      }
+      
+      // Regenerate heart points with new scaling
+      for (let i = 0; i < particleCount; i++) {
+        const t = Math.random() * Math.PI * 2;
+        const pos = heartShape(t);
+        const heartSpread = 15 * Math.min(window.innerWidth / 1200, window.innerHeight / 800);
+        targetHeart[i * 3] = pos.x + (Math.random() - 0.5) * heartSpread;
+        targetHeart[i * 3 + 1] = pos.y + (Math.random() - 0.5) * heartSpread;
+        targetHeart[i * 3 + 2] = (Math.random() - 0.5) * heartSpread;
+      }
+      
+      // Update particle size based on screen size
+      const screenScale = Math.min(window.innerWidth / 1200, window.innerHeight / 800);
+      material.size = Math.max(1, 2 * screenScale);
+    });
+
+    // Prevent context menu on long press
+    renderer.domElement.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+    });
+
+    // Hide instructions after first interaction
+    let hasInteracted = false;
+    function hideInstructions() {
+      if (!hasInteracted) {
+        hasInteracted = true;
+        const instructions = document.querySelector('.instructions');
+        if (instructions) {
+          instructions.style.opacity = '0';
+          setTimeout(() => {
+            instructions.style.display = 'none';
+          }, 1000);
+        }
+      }
+    }
+
+    renderer.domElement.addEventListener("click", hideInstructions);
+    renderer.domElement.addEventListener("touchend", hideInstructions);
+
+    // Performance monitoring (optional, for debugging)
+    if (window.location.search.includes('debug')) {
+      const stats = {
+        frameCount: 0,
+        startTime: Date.now()
+      };
+      
+      setInterval(() => {
+        const fps = stats.frameCount / ((Date.now() - stats.startTime) / 1000);
+        console.log(`FPS: ${fps.toFixed(1)}`);
+        stats.frameCount = 0;
+        stats.startTime = Date.now();
+      }, 1000);
+      
+      const originalAnimate = animate;
+      animate = function(currentTime) {
+        stats.frameCount++;
+        return originalAnimate(currentTime);
+      };
+    }
+  </script>
+</body>
+</html>

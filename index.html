@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>HPBD Thuận</title>
+  <title>chúc mừng sinh nhật Thuận</title>
   <style>
     * {
       margin: 0;
@@ -75,21 +75,6 @@
       }
     }
     
-    /* Prevent zoom on double tap */
-    canvas {
-      touch-action: manipulation;
-    }
-    
-    /* Hide scrollbars */
-    body::-webkit-scrollbar {
-      display: none;
-    }
-    
-    body {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    
     /* Performance optimizations */
     * {
       -webkit-tap-highlight-color: transparent;
@@ -100,7 +85,7 @@
 </head>
 <body>
   <div class="instructions">
-    mở bằng máy tính điđi.
+    Xoay ngang điện thoại đi.
   </div>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -110,10 +95,13 @@
       75, window.innerWidth / window.innerHeight, 0.1, 5000
     );
     
-    // Responsive camera positioning
+    // Simple responsive camera
     function updateCameraPosition() {
-      const isMobile = window.innerWidth < 768;
-      camera.position.z = isMobile ? 600 : 500;
+      if (window.innerWidth < 768) {
+        camera.position.z = 600;
+      } else {
+        camera.position.z = 500;
+      }
     }
     updateCameraPosition();
 
@@ -123,49 +111,57 @@
       powerPreference: "high-performance"
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
-    // Heart shape
+    // Heart shape - simple scaling
     function heartShape(t) {
       const x = 16 * Math.pow(Math.sin(t), 3);
       const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-      const scale = window.innerWidth < 768 ? 12 : 15; // Smaller on mobile
+      const scale = window.innerWidth < 768 ? 10 : 15;
       return new THREE.Vector3(x * scale, y * scale, 0);
     }
 
-    // Convert text to points with responsive sizing
+    // Simple text to points - FIX THE CORE ISSUE
     function textToPoints(text) {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      const isMobile = window.innerWidth < 768;
       
-      canvas.width = isMobile ? 600 : 800;
-      canvas.height = isMobile ? 150 : 200;
+      // Fixed canvas size that works everywhere
+      canvas.width = 800;
+      canvas.height = 200;
       
       ctx.fillStyle = "white";
-      ctx.font = `bold ${isMobile ? 100 : 150}px Arial`;
+      ctx.font = "bold 120px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(text, canvas.width / 2, isMobile ? 100 : 150);
+      ctx.fillText(text, 400, 120);
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       const points = [];
-      const step = isMobile ? 6 : 4; // Fewer points on mobile for performance
 
-      for (let y = 0; y < canvas.height; y += step) {
-        for (let x = 0; x < canvas.width; x += step) {
+      // Simple sampling
+      for (let y = 0; y < canvas.height; y += 4) {
+        for (let x = 0; x < canvas.width; x += 4) {
           const index = (y * canvas.width + x) * 4;
           if (imageData[index + 3] > 128) {
-            points.push(new THREE.Vector3(x - canvas.width / 2, canvas.height / 2 - y, 0));
+            // Simple scaling based on screen width
+            const scaleX = window.innerWidth / 1200;
+            const scaleY = window.innerHeight / 800;
+            const finalScale = Math.min(scaleX, scaleY) * 0.8; // 80% to ensure it fits
+            
+            const px = (x - 400) * finalScale;
+            const py = (120 - y) * finalScale;
+            points.push(new THREE.Vector3(px, py, 0));
           }
         }
       }
+      
+      console.log(`Text "${text}": ${points.length} points on ${window.innerWidth}x${window.innerHeight}`);
       return points;
     }
 
-    // Responsive particle count
-    const isMobile = window.innerWidth < 768;
-    const particleCount = isMobile ? 2000 : 4000;
+    // Simple particle count
+    const particleCount = window.innerWidth < 768 ? 2000 : 4000;
     
     const particles = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
@@ -182,20 +178,19 @@
       // Heart
       const t = Math.random() * Math.PI * 2;
       const pos = heartShape(t);
-      const heartSpread = isMobile ? 15 : 20;
-      targetHeart[i * 3] = pos.x + (Math.random() - 0.5) * heartSpread;
-      targetHeart[i * 3 + 1] = pos.y + (Math.random() - 0.5) * heartSpread;
-      targetHeart[i * 3 + 2] = (Math.random() - 0.5) * heartSpread;
+      targetHeart[i * 3] = pos.x + (Math.random() - 0.5) * 15;
+      targetHeart[i * 3 + 1] = pos.y + (Math.random() - 0.5) * 15;
+      targetHeart[i * 3 + 2] = (Math.random() - 0.5) * 15;
 
       // Explode
-      const explodeRange = isMobile ? 1500 : 2000;
-      targetExplode[i * 3] = (Math.random() - 0.5) * explodeRange;
-      targetExplode[i * 3 + 1] = (Math.random() - 0.5) * explodeRange;
-      targetExplode[i * 3 + 2] = (Math.random() - 0.5) * explodeRange;
+      const range = window.innerWidth < 768 ? 1200 : 1800;
+      targetExplode[i * 3] = (Math.random() - 0.5) * range;
+      targetExplode[i * 3 + 1] = (Math.random() - 0.5) * range;
+      targetExplode[i * 3 + 2] = (Math.random() - 0.5) * range;
     }
 
-    // Generate text target
-    const textPoints = textToPoints("hpbd Thuận");
+    // Generate text
+    const textPoints = textToPoints("hpbd thuận");
     for (let i = 0; i < particleCount; i++) {
       const p = textPoints[i % textPoints.length];
       targetText[i * 3] = p.x;
@@ -207,77 +202,54 @@
 
     const material = new THREE.PointsMaterial({
       color: 0xff3366,
-      size: isMobile ? 3 : 2,
+      size: window.innerWidth < 768 ? 3 : 2,
       sizeAttenuation: false
     });
 
     const pointCloud = new THREE.Points(particles, material);
     scene.add(pointCloud);
 
-    let phase = 0; // 0 = explode, 1 = heart, 2 = text
+    let phase = 0;
     const phases = [targetExplode, targetHeart, targetText];
 
-    // Animation with performance optimization
-    let lastTime = 0;
-    const targetFPS = 60;
-    const frameInterval = 1000 / targetFPS;
-
-    function animate(currentTime) {
+    // Simple animation
+    function animate() {
       requestAnimationFrame(animate);
-      
-      if (currentTime - lastTime < frameInterval) {
-        return;
-      }
-      lastTime = currentTime;
 
       const pos = particles.attributes.position.array;
       const target = phases[phase];
-      const lerp = isMobile ? 0.03 : 0.05; // Slower animation on mobile for smoother performance
 
       for (let i = 0; i < particleCount; i++) {
-        pos[i * 3] += (target[i * 3] - pos[i * 3]) * lerp;
-        pos[i * 3 + 1] += (target[i * 3 + 1] - pos[i * 3 + 1]) * lerp;
-        pos[i * 3 + 2] += (target[i * 3 + 2] - pos[i * 3 + 2]) * lerp;
+        pos[i * 3] += (target[i * 3] - pos[i * 3]) * 0.05;
+        pos[i * 3 + 1] += (target[i * 3 + 1] - pos[i * 3 + 1]) * 0.05;
+        pos[i * 3 + 2] += (target[i * 3 + 2] - pos[i * 3 + 2]) * 0.05;
       }
 
       particles.attributes.position.needsUpdate = true;
       renderer.render(scene, camera);
     }
 
-    animate(0);
+    animate();
 
-    // Touch and click events
-    let touchStartTime = 0;
-    
-    function handleInteraction() {
+    // Simple interaction
+    function handleClick() {
       phase = (phase + 1) % phases.length;
     }
 
-    // Touch events for mobile
-    renderer.domElement.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      touchStartTime = Date.now();
-    });
-
+    renderer.domElement.addEventListener("click", handleClick);
     renderer.domElement.addEventListener("touchend", (e) => {
       e.preventDefault();
-      const touchDuration = Date.now() - touchStartTime;
-      if (touchDuration < 500) { // Tap, not swipe
-        handleInteraction();
-      }
+      handleClick();
     });
 
-    // Click event for desktop
-    renderer.domElement.addEventListener("click", handleInteraction);
-
-    // Responsive resize
+    // Simple resize
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       updateCameraPosition();
       
-      // Regenerate text points with new scaling
+      // Regenerate text with new scale
       const newTextPoints = textToPoints("hpbd thuận");
       for (let i = 0; i < particleCount; i++) {
         const p = newTextPoints[i % newTextPoints.length];
@@ -286,64 +258,28 @@
         targetText[i * 3 + 2] = p.z;
       }
       
-      // Regenerate heart points with new scaling
-      for (let i = 0; i < particleCount; i++) {
-        const t = Math.random() * Math.PI * 2;
-        const pos = heartShape(t);
-        const heartSpread = 15 * Math.min(window.innerWidth / 1200, window.innerHeight / 800);
-        targetHeart[i * 3] = pos.x + (Math.random() - 0.5) * heartSpread;
-        targetHeart[i * 3 + 1] = pos.y + (Math.random() - 0.5) * heartSpread;
-        targetHeart[i * 3 + 2] = (Math.random() - 0.5) * heartSpread;
-      }
-      
-      // Update particle size based on screen size
-      const screenScale = Math.min(window.innerWidth / 1200, window.innerHeight / 800);
-      material.size = Math.max(1, 2 * screenScale);
+      // Update particle size
+      material.size = window.innerWidth < 768 ? 3 : 2;
     });
 
-    // Prevent context menu on long press
-    renderer.domElement.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-    });
-
-    // Hide instructions after first interaction
-    let hasInteracted = false;
+    // Hide instructions after click
+    let clicked = false;
     function hideInstructions() {
-      if (!hasInteracted) {
-        hasInteracted = true;
+      if (!clicked) {
+        clicked = true;
         const instructions = document.querySelector('.instructions');
-        if (instructions) {
-          instructions.style.opacity = '0';
-          setTimeout(() => {
-            instructions.style.display = 'none';
-          }, 1000);
-        }
+        instructions.style.opacity = '0';
+        setTimeout(() => instructions.style.display = 'none', 1000);
       }
     }
 
     renderer.domElement.addEventListener("click", hideInstructions);
     renderer.domElement.addEventListener("touchend", hideInstructions);
 
-    // Performance monitoring (optional, for debugging)
-    if (window.location.search.includes('debug')) {
-      const stats = {
-        frameCount: 0,
-        startTime: Date.now()
-      };
-      
-      setInterval(() => {
-        const fps = stats.frameCount / ((Date.now() - stats.startTime) / 1000);
-        console.log(`FPS: ${fps.toFixed(1)}`);
-        stats.frameCount = 0;
-        stats.startTime = Date.now();
-      }, 1000);
-      
-      const originalAnimate = animate;
-      animate = function(currentTime) {
-        stats.frameCount++;
-        return originalAnimate(currentTime);
-      };
-    }
+    // Prevent context menu
+    renderer.domElement.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+    });
   </script>
 </body>
 </html>
